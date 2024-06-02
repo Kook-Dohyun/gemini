@@ -1,5 +1,5 @@
-import 'dart:typed_data';
-
+// import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
@@ -30,7 +30,7 @@ class GenerativeAISample extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           brightness: Brightness.dark,
-          seedColor: const Color.fromARGB(255, 171, 222, 244),
+          seedColor: const Color.fromARGB(255, 1, 170, 255),
         ),
         useMaterial3: true,
       ),
@@ -50,9 +50,18 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Flutter_Gemini'),
-        titleTextStyle: const TextStyle(fontSize: 18),
+        title: const Text('Gemini-1.5-flash'),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.2),
+            ),
+          ),
+        ),
       ),
       body: ChatWidget(apiKey: GlobalConfig.instance.apikey),
     );
@@ -80,6 +89,8 @@ class _ChatWidgetState extends State<ChatWidget> {
   final List<({Image? image, String? text, bool fromUser})> _generatedContent =
       <({Image? image, String? text, bool fromUser})>[];
   bool _loading = false;
+  late Color sendIconColor =
+      Theme.of(context).colorScheme.surfaceContainerHighest;
 
   @override
   void initState() {
@@ -89,6 +100,15 @@ class _ChatWidgetState extends State<ChatWidget> {
       apiKey: widget.apiKey,
     );
     _chat = _model.startChat();
+    _textController.addListener(_handleTextChange);
+  }
+
+  void _handleTextChange() {
+    setState(() {
+      sendIconColor = _textController.text.isNotEmpty
+          ? Theme.of(context).colorScheme.primary
+          : Theme.of(context).colorScheme.surfaceContainerHighest;
+    });
   }
 
   void _scrollDown() {
@@ -107,10 +127,11 @@ class _ChatWidgetState extends State<ChatWidget> {
   Widget build(BuildContext context) {
     final textFieldDecoration = InputDecoration(
       contentPadding: const EdgeInsets.all(15),
-      hintText: 'Enter a prompt...',
+      hintText: 'Message',
+      filled: true,
       border: OutlineInputBorder(
         borderRadius: const BorderRadius.all(
-          Radius.circular(14),
+          Radius.circular(20),
         ),
         borderSide: BorderSide(
           color: Theme.of(context).colorScheme.secondary,
@@ -118,7 +139,7 @@ class _ChatWidgetState extends State<ChatWidget> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: const BorderRadius.all(
-          Radius.circular(14),
+          Radius.circular(23),
         ),
         borderSide: BorderSide(
           color: Theme.of(context).colorScheme.secondary,
@@ -126,72 +147,90 @@ class _ChatWidgetState extends State<ChatWidget> {
       ),
     );
 
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Expanded(
               child: ListView.builder(
-            controller: _scrollController,
-            itemBuilder: (context, idx) {
-              final content = _generatedContent[idx];
-              return MessageWidget(
-                text: content.text,
-                image: content.image,
-                isFromUser: content.fromUser,
-              );
-            },
-            itemCount: _generatedContent.length,
-          )),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 25,
-              horizontal: 15,
+                controller: _scrollController,
+                itemCount: _generatedContent.length + 1,
+                itemBuilder: (context, idx) {
+                  if (idx < _generatedContent.length) {
+                    final content = _generatedContent[idx];
+                    return MessageWidget(
+                      text: content.text!,
+                      image: content.image,
+                      isFromUser: content.fromUser,
+                    );
+                  } else {
+                    return const SizedBox.square(
+                      dimension: 80,
+                    );
+                  }
+                },
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    autofocus: true,
-                    focusNode: _textFieldFocus,
-                    decoration: textFieldDecoration,
-                    controller: _textController,
-                    onSubmitted: _sendChatMessage,
-                  ),
+          ],
+        ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                color: Colors.transparent,
+                margin: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 15,
                 ),
-                const SizedBox.square(dimension: 15),
-                // IconButton(
-                //   onPressed: !_loading
-                //       ? () async {
-                //           _sendImagePrompt(_textController.text);
-                //         }
-                //       : null,
-                //   icon: Icon(
-                //     Icons.image,
-                //     color: _loading
-                //         ? Theme.of(context).colorScheme.secondary
-                //         : Theme.of(context).colorScheme.primary,
-                //   ),
-                // ),
-                if (!_loading)
-                  IconButton(
-                    onPressed: () async {
-                      _sendChatMessage(_textController.text);
-                    },
-                    icon: Icon(
-                      Icons.send,
-                      color: Theme.of(context).colorScheme.primary,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        autofocus: true,
+                        focusNode: _textFieldFocus,
+                        decoration: textFieldDecoration,
+                        controller: _textController,
+                        onSubmitted: (_textController.text != '')
+                            ? _sendChatMessage
+                            : null,
+                      ),
                     ),
-                  )
-                else
-                  const CircularProgressIndicator(),
-              ],
+                    // IconButton(
+                    //   onPressed: !_loading
+                    //       ? () async {
+                    //           _sendImagePrompt(_textController.text);
+                    //         }
+                    //       : null,
+                    //   icon: Icon(
+                    //     Icons.image,
+                    //     color: _loading
+                    //         ? Theme.of(context).colorScheme.secondary
+                    //         : Theme.of(context).colorScheme.primary,
+                    //   ),
+                    // ),
+
+                    IconButton(
+                      onPressed: (_textController.text != '')
+                          ? () async {
+                              _sendChatMessage(_textController.text);
+                            }
+                          : null,
+                      icon: (!_loading)
+                          ? Icon(
+                              Icons.send,
+                              color: sendIconColor,
+                            )
+                          : const CircularProgressIndicator(),
+                    )
+                  ],
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -249,38 +288,41 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   Future<void> _sendChatMessage(String message) async {
-    setState(() {
-      _loading = true;
-    });
+    if (_textController.text != '') {
+      setState(() {
+        _loading = true;
+        _scrollDown();
+      });
 
-    try {
-      _generatedContent.add((image: null, text: message, fromUser: true));
-      final response = await _chat.sendMessage(
-        Content.text(message),
-      );
-      final text = response.text;
-      _generatedContent.add((image: null, text: text, fromUser: false));
+      try {
+        _generatedContent.add((image: null, text: message, fromUser: true));
+        final response = await _chat.sendMessage(
+          Content.text(message),
+        );
+        final text = response.text;
+        _generatedContent.add((image: null, text: text, fromUser: false));
 
-      if (text == null) {
-        _showError('No response from API.');
-        return;
-      } else {
+        if (text == null) {
+          _showError('No response from API.');
+          return;
+        } else {
+          setState(() {
+            _loading = false;
+            _scrollDown();
+          });
+        }
+      } catch (e) {
+        _showError(e.toString());
         setState(() {
           _loading = false;
-          _scrollDown();
         });
+      } finally {
+        _textController.clear();
+        setState(() {
+          _loading = false;
+        });
+        _textFieldFocus.requestFocus();
       }
-    } catch (e) {
-      _showError(e.toString());
-      setState(() {
-        _loading = false;
-      });
-    } finally {
-      _textController.clear();
-      setState(() {
-        _loading = false;
-      });
-      _textFieldFocus.requestFocus();
     }
   }
 
@@ -321,28 +363,43 @@ class MessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final BorderRadius border = BorderRadius.circular(18);
     return Row(
       mainAxisAlignment:
           isFromUser ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         Flexible(
-            child: Container(
-                constraints: const BoxConstraints(maxWidth: 520),
-                decoration: BoxDecoration(
-                  color: isFromUser
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: EdgeInsets.only(
+                left: isFromUser ? 25 : 12,
+                right: isFromUser ? 12 : 25,
+                bottom: 12),
+            child: Material(
+              borderRadius: border,
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {},
+                borderRadius: border,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: isFromUser
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: border,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 20,
+                  ),
+                  child: Column(children: [
+                    if (text case final text?) MarkdownBody(data: text),
+                    if (image case final image?) image,
+                  ]),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 15,
-                  horizontal: 20,
-                ),
-                margin: const EdgeInsets.only(bottom: 8),
-                child: Column(children: [
-                  if (text case final text?) MarkdownBody(data: text),
-                  if (image case final image?) image,
-                ]))),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
