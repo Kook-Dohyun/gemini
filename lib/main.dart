@@ -34,15 +34,13 @@ class GenerativeAISample extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const ChatScreen(title: 'Flutter + Generative AI'),
+      home: const ChatScreen(),
     );
   }
 }
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.title});
-
-  final String title;
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -53,7 +51,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text('Flutter_Gemini'),
+        titleTextStyle: const TextStyle(fontSize: 18),
       ),
       body: ChatWidget(apiKey: GlobalConfig.instance.apikey),
     );
