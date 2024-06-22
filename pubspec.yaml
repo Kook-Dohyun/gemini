@@ -13,7 +13,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   flutter_markdown: ^0.7.1
   get: ^4.6.6
-  google_generative_ai: ^0.4.2
+  google_generative_ai: ^0.4.3
 
 dev_dependencies:
   flutter_test:

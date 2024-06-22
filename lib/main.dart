@@ -347,6 +347,8 @@ class _ChatWidgetState extends State<ChatWidget> {
       },
     );
   }
+
+  
 }
 
 class MessageWidget extends StatelessWidget {
